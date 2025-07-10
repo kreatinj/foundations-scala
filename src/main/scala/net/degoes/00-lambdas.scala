@@ -15,7 +15,7 @@ package net.degoes.lambdas
 
 import zio._
 import zio.test._
-import zio.test.TestAspect._
+// import zio.test.TestAspect._
 
 object Lambdas extends ZIOSpecDefault {
   def assertTypeEquals[A, B](implicit ev: A <:< B) = assertCompletes
