@@ -34,7 +34,7 @@ object Lambdas extends ZIOSpecDefault {
           val square: Int => Int = x => x * x
 
           assertTrue(square(3) == 9)
-        } @@ ignore +
+        } +
           test("plus") {
 
             /**
@@ -46,7 +46,7 @@ object Lambdas extends ZIOSpecDefault {
             val plus: (Int, Int) => Int = (a, b) => a + b
 
             assertTrue(plus(2, 2) == 4)
-          } @@ ignore +
+          } +
           /**
            * EXERCISE
            *
@@ -56,7 +56,7 @@ object Lambdas extends ZIOSpecDefault {
             val addTwo: Int => Int = _ + 2
 
             assertTrue(addTwo(2) == 4)
-          } @@ ignore +
+          } +
           /**
            * EXERCISE
            *
@@ -73,7 +73,7 @@ object Lambdas extends ZIOSpecDefault {
             val numberOfDigits: Int => Int = convertToString.andThen(countLength)
 
             assertTrue(numberOfDigits(123) == 3)
-          } @@ ignore +
+          } +
           /**
            * EXERCISE
            *
@@ -92,7 +92,7 @@ object Lambdas extends ZIOSpecDefault {
             val numberOfDigits: Int => Int = countLength.compose(convertToString)
 
             assertTrue(numberOfDigits(123) == 3)
-          } @@ ignore +
+          } +
           /**
            * EXERCISE
            *
@@ -103,7 +103,7 @@ object Lambdas extends ZIOSpecDefault {
             val sameString: String => String = Predef.identity
 
             assertTrue(sameString("foobar") == "foobar" && sameString("barfoo") == "barfoo")
-          } @@ ignore +
+          } +
           /**
            * EXERCISE
            *
@@ -114,7 +114,7 @@ object Lambdas extends ZIOSpecDefault {
             val answer: String => Int = Function.const(42)
 
             assertTrue(answer("foo") == answer("bar") && answer("foobar") == 42)
-          } @@ ignore +
+          } +
           /**
            * EXERCISE
            *
@@ -126,7 +126,7 @@ object Lambdas extends ZIOSpecDefault {
             val prependSpace: Int => (String => String) = n => " " * n + _
 
             assertTrue(prependSpace(5)("foo") == "     foo")
-          } @@ ignore +
+          } +
           /**
            * EXERCISE
            *
@@ -143,7 +143,7 @@ object Lambdas extends ZIOSpecDefault {
               }
 
             assertTrue(repeat(5)(_ + ".")("Coming soon") == "Coming soon.....")
-          } @@ ignore
+          }
       } +
         suite("types") {
 
@@ -159,7 +159,7 @@ object Lambdas extends ZIOSpecDefault {
             type Type = Int => Int
 
             assertTypeEquals[f.type, Type]
-          } @@ ignore +
+          } +
             /**
              * EXERCISE
              *
@@ -172,7 +172,7 @@ object Lambdas extends ZIOSpecDefault {
               type Type = (Int, Int) => Int
 
               assertTypeEquals[f.type, Type]
-            } @@ ignore +
+            } +
             /**
              * EXERCISE
              *
@@ -185,7 +185,7 @@ object Lambdas extends ZIOSpecDefault {
               type Type = ((Int, Int)) => Int
 
               assertTypeEquals[f.type, Type]
-            } @@ ignore +
+            } +
             /**
              * EXERCISE
              *
@@ -198,7 +198,7 @@ object Lambdas extends ZIOSpecDefault {
               type Type = Int => Int => Int
 
               assertTypeEquals[f.type, Type]
-            } @@ ignore +
+            } +
             /**
              * EXERCISE
              *
@@ -211,7 +211,7 @@ object Lambdas extends ZIOSpecDefault {
               type Type = Int => (Int => Int) => Int
 
               assertTypeEquals[f.type, Type]
-            } @@ ignore
+            }
         } +
         suite("partiality") {
 
@@ -227,7 +227,7 @@ object Lambdas extends ZIOSpecDefault {
             }
 
             assertTrue(!divide.isDefinedAt((42, 0)))
-          } @@ ignore +
+          } +
             /**
              * EXERCISE
              *
@@ -244,7 +244,7 @@ object Lambdas extends ZIOSpecDefault {
               def divideOption: ((Int, Int)) => Option[Int] = divide.lift
 
               assertTrue(divideOption((42, 0)) == None)
-            } @@ ignore
+            }
         }
     }
 }
