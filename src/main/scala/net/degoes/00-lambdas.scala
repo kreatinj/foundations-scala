@@ -138,7 +138,7 @@ object Lambdas extends ZIOSpecDefault {
           test("repeat") {
             val repeat: Int => (String => String) => (String => String) = n =>
               f => {
-                def loop(n: Int, ans: String): String = if (n == 1) ans else loop(n - 1, f(ans))
+                def loop(n: Int, ans: String): String = if (n == 0) ans else loop(n - 1, f(ans))
                 loop(n, _)
               }
 
