@@ -42,7 +42,7 @@ object Data extends ZIOSpecDefault {
           val holmes = new Person("Sherlock Holmes", 42)
 
           assertTrue(getName(holmes) == "Sherlock Holmes" && getAge(holmes) == 42)
-        } @@ ignore +
+        } +
           /**
            * EXERCISE
            *
@@ -51,12 +51,13 @@ object Data extends ZIOSpecDefault {
            * all case classes receive in their companion objects.
            */
           test("apply") {
-            object Person {
-              def apply(name: String, age: Int) = ???
-            }
+            case class Person(name: String, age: Int)
+            // object Person {
+            //   def apply(name: String, age: Int) = new Person(name, age)
+            // }
 
             assertTrue(Person("Sherlock Holmes", 42) == Person("Sherlock Holmes", 42))
-          } @@ ignore +
+          } +
           /**
            * EXERCISE
            *
@@ -64,10 +65,10 @@ object Data extends ZIOSpecDefault {
            * turning it into a case class.
            */
           test("equals") {
-            class Profile(val age: Int)
+            case class Profile(val age: Int)
 
             assertTrue(new Profile(42) == new Profile(42))
-          } @@ ignore +
+          } +
           /**
            * EXERCISE
            *
@@ -75,10 +76,10 @@ object Data extends ZIOSpecDefault {
            * by turning it into a case class.
            */
           test("hashCode") {
-            class CreditCard(val number: String)
+            case class CreditCard(val number: String)
 
             assertTrue(new CreditCard("123").hashCode == new CreditCard("123").hashCode)
-          } @@ ignore +
+          } +
           /**
            * EXERCISE
            *
@@ -86,10 +87,10 @@ object Data extends ZIOSpecDefault {
            * by turning it into a case class.
            */
           test("toString") {
-            class Address(val street: String)
+            case class Address(val street: String)
 
             assertTrue(new Address("221B Baker Street").toString == "Address(221B Baker Street)")
-          } @@ ignore +
+          } +
           /**
            * EXERCISE
            *
@@ -97,18 +98,18 @@ object Data extends ZIOSpecDefault {
            * by turning it into a case class.
            */
           test("copy") {
-            class Permissions(val canRead: Boolean, canWrite: Boolean, canShare: Boolean) {
-              def copy(
-                canRead: Boolean = this.canRead,
-                canWrite: Boolean = this.canWrite,
-                canShare: Boolean = this.canShare
-              ): Permissions = ???
+            case class Permissions(val canRead: Boolean, canWrite: Boolean, canShare: Boolean) {
+              // def copy(
+              //   canRead: Boolean = this.canRead,
+              //   canWrite: Boolean = this.canWrite,
+              //   canShare: Boolean = this.canShare
+              // ): Permissions = ???
             }
 
             val perms = new Permissions(true, false, false)
 
             assertTrue(perms.copy(canRead = false) == new Permissions(false, false, false))
-          } @@ ignore +
+          } +
           suite("patterns") {
 
             /**
@@ -119,10 +120,12 @@ object Data extends ZIOSpecDefault {
             test("simple") {
               final case class Address(street: String)
 
-              def extractStreet(address: Address): String = ???
+              def extractStreet(address: Address): String = address match {
+                case Address(street) => street
+              }
 
               assertTrue(extractStreet(Address("221B Baker")) == "221B Baker")
-            } @@ ignore +
+            } +
               /**
                * EXERCISE
                *
@@ -132,10 +135,12 @@ object Data extends ZIOSpecDefault {
               test("wildcard") {
                 final case class Address(street: String, postalCode: String)
 
-                def extractPostalCode(address: Address): String = ???
+                def extractPostalCode(address: Address): String = address match {
+                  case Address(_, postalCode) => postalCode
+                }
 
                 assertTrue(extractPostalCode(Address("221B Baker", "NW1 6XE")) == "NW1 6XE")
-              } @@ ignore +
+              } +
               /**
                * EXERCISE
                *
@@ -146,10 +151,13 @@ object Data extends ZIOSpecDefault {
               test("constant") {
                 final case class Address(street: String, postalCode: String)
 
-                def is221B(address: Address): Boolean = ???
+                def is221B(address: Address): Boolean = address match {
+                  case Address("221B Baker", _) => true
+                  case _                        => false
+                }
 
                 assertTrue(is221B(Address("221B Baker", "NW1 6XE")))
-              } @@ ignore +
+              } +
               /**
                * EXERCISE
                *
@@ -161,10 +169,13 @@ object Data extends ZIOSpecDefault {
               test("ordered") {
                 final case class Address(number: String, street: String, postalCode: String)
 
-                def neighbor(address: Address): String = ???
+                def neighbor(address: Address): String = address match {
+                  case Address(_, "Baker", _) => "Knows Holmes"
+                  case _                      => "Unknown"
+                }
 
                 assertTrue(neighbor(Address("220", "Baker", "NW1 6XE")) == "Knows Holmes")
-              } @@ ignore +
+              } +
               /**
                * EXERCISE
                *
@@ -174,10 +185,13 @@ object Data extends ZIOSpecDefault {
               test("conditional") {
                 final case class Address(street: String, postalCode: String)
 
-                def isBaker(address: Address): Boolean = ???
+                def isBaker(address: Address): Boolean = address match {
+                  case Address(street, _) if street.contains("Baker") => true
+                  case _                                              => false
+                }
 
                 assertTrue(isBaker(Address("220 Baker", "NW1 6XE")))
-              } @@ ignore +
+              } +
               /**
                * EXERCISE
                *
@@ -188,12 +202,14 @@ object Data extends ZIOSpecDefault {
                 final case class Person(name: String, address: Address)
                 final case class Address(street: String, postalCode: String)
 
-                def extractPostalCode(person: Person): String = ???
+                def extractPostalCode(person: Person): String = person match {
+                  case Person(_, Address(_, postalCode)) => postalCode
+                }
 
                 val sherlock = Person("Sherlock Holmes", Address("221B Baker", "NW1 6XE"))
 
                 assertTrue(extractPostalCode(sherlock) == "NW1 6XE")
-              } @@ ignore +
+              } +
               /**
                * EXERCISE
                *
@@ -207,12 +223,15 @@ object Data extends ZIOSpecDefault {
 
                 val _ = sherlockStreet
 
-                def isSherlockStreet(address: Address): Boolean = ???
+                def isSherlockStreet(address: Address): Boolean = address match {
+                  case Address(_, `sherlockStreet`, _) => true
+                  case _                               => false
+                }
 
                 val address = Address("220", "Baker", "NW1 6XE")
 
                 assertTrue(isSherlockStreet(address))
-              } @@ ignore
+              }
           }
       } +
         suite("Sealed Traits") {
@@ -224,7 +243,7 @@ object Data extends ZIOSpecDefault {
            * pattern matching. Notice how the warning changes.
            */
           test("sealed") {
-            trait Color
+            sealed trait Color
             case object Red   extends Color
             case object Green extends Color
             case object Blue  extends Color
@@ -234,10 +253,11 @@ object Data extends ZIOSpecDefault {
 
             val isRed: Color => Boolean = {
               case Red => true
+              case _   => false
             }
 
             assertTrue(!isRed(Blue))
-          } @@ ignore +
+          } +
             /**
              * EXERCISE
              *
@@ -245,14 +265,17 @@ object Data extends ZIOSpecDefault {
              * `UK`, `Germany`, `India`, `Netherlands`, and `USA`.
              */
             test("country") {
-              trait Country
-              object UK
-              object USA
+              sealed trait Country
+              case object UK          extends Country
+              case object Germany     extends Country
+              case object India       extends Country
+              case object Netherlands extends Country
+              case object USA         extends Country
 
               def isCountry(a: Any) = a.isInstanceOf[Country]
 
               assertTrue(isCountry(UK) && isCountry(USA))
-            } @@ ignore +
+            } +
             /**
              * EXERCISE
              *
@@ -269,7 +292,10 @@ object Data extends ZIOSpecDefault {
 
               val _ = PayPal("")
 
-              def asCreditCard(paymentMethod: PaymentMethod): Option[CreditCard] = ???
+              def asCreditCard(paymentMethod: PaymentMethod): Option[CreditCard] = paymentMethod match {
+                case c @ CreditCard(_, _, _) => Some(c)
+                case _                       => None
+              }
 
               val cc: CreditCard = CreditCard("123123123123", java.time.YearMonth.of(1984, 12), 123)
 
