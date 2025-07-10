@@ -34,10 +34,10 @@ object Data extends ZIOSpecDefault {
          * constructor parameters of the class.
          */
         test("fields") {
-          class Person(name: String, age: Int)
+          case class Person(name: String, age: Int)
 
-          def getName(p: Person): String = ???
-          def getAge(p: Person): Int     = ???
+          def getName(p: Person): String = p.name
+          def getAge(p: Person): Int     = p.age
 
           val holmes = new Person("Sherlock Holmes", 42)
 
