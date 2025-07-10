@@ -18,10 +18,10 @@ package net.degoes
 
 import zio._
 import zio.test._
-import zio.test.TestAspect._
+// import zio.test.TestAspect._
 
 object Data extends ZIOSpecDefault {
-  type ???
+  // type ???
 
   def spec =
     suite("Data") {
@@ -266,11 +266,11 @@ object Data extends ZIOSpecDefault {
              */
             test("country") {
               sealed trait Country
-              case object UK          extends Country
-              case object Germany     extends Country
-              case object India       extends Country
-              case object Netherlands extends Country
-              case object USA         extends Country
+              case object UK extends Country
+              // case object Germany     extends Country
+              // case object India       extends Country
+              // case object Netherlands extends Country
+              case object USA extends Country
 
               def isCountry(a: Any) = a.isInstanceOf[Country]
 
@@ -312,14 +312,17 @@ object Data extends ZIOSpecDefault {
            * single, divorced.
            */
           test("example 1") {
-            type RelationshipStatus = ???
+            sealed trait RelationshipStatus
+            case object Married extends RelationshipStatus
+            case object Single  extends RelationshipStatus
+            // case object Divorced extends RelationshipStatus
 
-            def makeMarried: RelationshipStatus = ???
+            def makeMarried: RelationshipStatus = Married
 
-            def makeSingle: RelationshipStatus = ???
+            def makeSingle: RelationshipStatus = Single
 
             assertTrue(makeMarried != makeSingle)
-          } @@ ignore +
+          } +
             /**
              * EXERCISE
              *
@@ -328,41 +331,51 @@ object Data extends ZIOSpecDefault {
              * API token, which is a string.
              */
             test("example 2") {
-              type PaymentProcessorAPI = ???
-              type DataFormat          = ???
+              case class PaymentProcessorAPI(url: java.net.URI, dataFormat: DataFormat, apiToken: String)
+              sealed trait DataFormat
+              case object JSON extends DataFormat
+              // case object XML  extends DataFormat
 
-              def define(url: java.net.URI, df: DataFormat, apiToken: String): PaymentProcessorAPI = ???
+              def define(url: java.net.URI, df: DataFormat, apiToken: String): PaymentProcessorAPI =
+                PaymentProcessorAPI(url, df, apiToken)
 
               val url              = new java.net.URI("https://stripe.com")
-              def json: DataFormat = ???
+              def json: DataFormat = JSON
 
               val api1 = define(url, json, "123123")
               val api2 = define(url, json, "123124")
 
               assertTrue(api1 == api1 && api1 != api2)
-            } @@ ignore +
+            } +
             /**
              * EXERCISE
              *
              * Create a precise data model for a user's crypto portfolio.
              */
             test("example 3") {
-              type Portfolio = ???
+              case class Portfolio(amounts: Map[Symbol, Double])
 
-              type Symbol = ???
+              sealed trait Symbol
+              object Symbol {
+                case object ETH extends Symbol
+                case object BTC extends Symbol
+              }
 
-              def ETH: Symbol = ???
-              def BTC: Symbol = ???
+              def ETH: Symbol = Symbol.ETH
+              def BTC: Symbol = Symbol.BTC
 
-              def add(portfolio: Portfolio, symbol: Symbol, amount: Double): Portfolio = ???
+              def add(portfolio: Portfolio, symbol: Symbol, amount: Double): Portfolio =
+                portfolio.copy(amounts =
+                  portfolio.amounts.updated(symbol, portfolio.amounts.getOrElse(symbol, 0.0) + amount)
+                )
 
-              def empty: Portfolio = ???
+              def empty: Portfolio = Portfolio(Map.empty)
 
               val p1 = add(add(add(empty, ETH, 1.0), ETH, 1.0), BTC, 2.0)
               val p2 = add(add(empty, BTC, 2.0), ETH, 2.0)
 
               assertTrue(p1 == p2)
-            } @@ ignore +
+            } +
             /**
              * EXERCISE
              *
@@ -371,16 +384,22 @@ object Data extends ZIOSpecDefault {
              * which could bundle different features into the plan.
              */
             test("example 4") {
-              type Features     = ???
-              type Subscription = ???
-              def makeFeatures(space: Int, sso: Boolean, customLogo: Boolean): Features = ???
-              def makeMonthly(amount: Double, features: Features): Subscription         = ???
-              def makeAnnually(amount: Double, features: Features): Subscription        = ???
+              case class Features(space: Int, sso: Boolean, customLogo: Boolean)
+              sealed trait Subscription
+              case class Annual(amount: Double, features: Features)  extends Subscription
+              case class Monthly(amount: Double, features: Features) extends Subscription
+
+              def makeFeatures(space: Int, sso: Boolean, customLogo: Boolean): Features =
+                Features(space, sso, customLogo)
+              def makeMonthly(amount: Double, features: Features): Subscription =
+                Monthly(amount, features)
+              def makeAnnually(amount: Double, features: Features): Subscription =
+                Annual(amount, features)
 
               val features = makeFeatures(2048, true, true)
 
               assertTrue(makeMonthly(9.99, features) != makeAnnually(9.99, features))
-            } @@ ignore +
+            } +
             /**
              * EXERCISE
              *
@@ -389,20 +408,23 @@ object Data extends ZIOSpecDefault {
              * booleans, or other common types for fields in forms.
              */
             test("advanced example") {
-              type Field[A]     = ???
-              type FieldType[A] = ???
+              case class Field[A](name: String, fieldType: FieldType[A])
+              sealed trait FieldType[A]
+              case object IntType extends FieldType[Int]
+              case object StrType extends FieldType[String]
 
-              def intType: FieldType[Int]    = ???
-              def strType: FieldType[String] = ???
+              def intType: FieldType[Int]    = IntType
+              def strType: FieldType[String] = StrType
 
-              def makeField[A](name: String, fieldType: FieldType[A]): Field[A] = ???
+              def makeField[A](name: String, fieldType: FieldType[A]): Field[A] =
+                Field(name, fieldType)
 
               val strField1 = makeField("name", strType)
               val strField2 = makeField("name", strType)
               val numField  = makeField("age", intType)
 
               assertTrue(strField1 == strField2 && numField != strField1)
-            } @@ ignore
+            }
         }
     }
 }
