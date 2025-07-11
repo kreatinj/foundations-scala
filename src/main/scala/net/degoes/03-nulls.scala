@@ -11,7 +11,7 @@
 package net.degoes
 
 import zio.test._
-import zio.test.TestAspect._
+// import zio.test.TestAspect._
 
 object Nulls extends ZIOSpecDefault {
   def spec =
@@ -27,10 +27,10 @@ object Nulls extends ZIOSpecDefault {
         test("apply") {
           import java.io.File
 
-          def parentOf(file: String) = new File(file).getParent
+          def parentOf(file: String) = Option(new File(file).getParent)
 
           assertTrue(parentOf("") != null)
-        } @@ ignore +
+        } +
           /**
            * EXERCISE
            *
@@ -39,12 +39,12 @@ object Nulls extends ZIOSpecDefault {
            */
           test("Some / None") {
             def fromNullable[A](a: A): Option[A] =
-              ???
+              if (a == null) None else Some(a)
 
             val nullInt = null.asInstanceOf[Int]
 
             assertTrue(fromNullable(nullInt) == None && fromNullable(42) == Some(42))
-          } @@ ignore +
+          } +
           /**
            * EXERCISE
            *
@@ -59,13 +59,11 @@ object Nulls extends ZIOSpecDefault {
 
             def loadConfig(): Option[Config] = None
 
-            def config: Config = {
-              loadConfig()
-              ???
-            }
+            def config: Config =
+              loadConfig().getOrElse(DefaultConfig)
 
             assertTrue(config != null)
-          } @@ ignore +
+          } +
           /**
            * EXERCISE
            *
@@ -75,10 +73,10 @@ object Nulls extends ZIOSpecDefault {
           test("map") {
             val option: Option[Int] = Some(42)
 
-            def convert(o: Option[Int]): Option[Char] = ???
+            def convert(o: Option[Int]): Option[Char] = o.map(_.toChar)
 
             assertTrue(convert(option) == Some(42.toChar))
-          } @@ ignore +
+          } +
           /**
            * EXERCISE
            *
@@ -87,10 +85,13 @@ object Nulls extends ZIOSpecDefault {
            */
           test("both") {
             def both[A, B](left: Option[A], right: Option[B]): Option[(A, B)] =
-              ???
+              for {
+                l <- left
+                r <- right
+              } yield (l, r)
 
             assertTrue(both(Some(42), Some(24)) == Some((42, 24)))
-          } @@ ignore +
+          } +
           /**
            * EXERCISE
            *
@@ -99,10 +100,10 @@ object Nulls extends ZIOSpecDefault {
            */
           test("oneOf") {
             def firstOf[A](left: Option[A], right: Option[A]): Option[A] =
-              ???
+              left.orElse(right)
 
             assertTrue(firstOf(None, Some(24)) == Some(24))
-          } @@ ignore +
+          } +
           /**
            * EXERCISE
            *
@@ -115,10 +116,10 @@ object Nulls extends ZIOSpecDefault {
            */
           test("chain") {
             def chain[A, B](first: Option[A], andThen: A => Option[B]): Option[B] =
-              ???
+              first.flatMap(andThen)
 
             assertTrue(chain(Some(42), (x: Int) => if (x < 10) None else Some(x)) == Some(42))
-          } @@ ignore +
+          } +
           /**
            * EXERCISE
            *
@@ -132,15 +133,7 @@ object Nulls extends ZIOSpecDefault {
             final case class User(name: String, profile: Option[Profile])
 
             def getLatLong(user: User): Option[LatLong] =
-              user.profile match {
-                case None => None
-                case Some(v) =>
-                  v.location match {
-                    case None    => None
-                    case Some(v) => v.latLong
-                  }
-              }
-
+              user.profile.flatMap(_.location.flatMap(_.latLong))
             val latLong = LatLong(123, 123)
 
             val user = User("Holmes", Some(Profile(Some(Location("UK", Some(latLong))))))
@@ -157,45 +150,44 @@ object Nulls extends ZIOSpecDefault {
            */
           test("property") {
             object SafeProperty {
-              def getProperty(name: String): Option[String] = ???
+              def getProperty(name: String): Option[String] =
+                Option(System.getProperty(name))
 
-              def getIntProperty(name: String): Option[Int] = ???
+              def getIntProperty(name: String): Option[Int] =
+                getProperty(name).flatMap(_.toIntOption)
 
-              def getBoolProperty(name: String): Option[Boolean] = ???
+              def getBoolProperty(name: String): Option[Boolean] =
+                getProperty(name).flatMap(_.toBooleanOption)
             }
 
             assertTrue(SafeProperty.getProperty("foo.bar") == None)
-          } @@ ignore +
+          } +
             /**
              * EXERCISE
              *
              * Rewrite the following code to use `Option` instead of nulls.
              */
             test("example 1") {
-              final case class Address(street: String)
-              final case class Profile(address: Address)
-              final case class User(id: String, profile: Profile)
+              final case class Address(street: Option[String])
+              final case class Profile(address: Option[Address])
+              final case class User(id: String, profile: Option[Profile])
 
               val user1 =
-                User("Sherlock Holmes", null)
+                User("Sherlock Holmes", None)
               val user2 =
-                User("Sherlock Holmes", Profile(null))
+                User("Sherlock Holmes", Some(Profile(None)))
               val user3 =
-                User("Sherlock Holmes", Profile(Address(null)))
+                User("Sherlock Holmes", Some(Profile(Some(Address(None)))))
 
-              def getStreet(user: User): String =
-                if (user == null) null
-                else if (user.profile == null) null
-                else if (user.profile.address == null) null
-                else if (user.profile.address.street == null) null
-                else user.profile.address.street
+              def getStreet(user: User): Option[String] =
+                user.profile.flatMap(_.address).flatMap(_.street)
 
-              def assertFails(value: => Any) = assertTrue(value == null)
+              def assertFails(value: => Any) = assertTrue(value == None)
 
               assertFails(getStreet(user1)) &&
               assertFails(getStreet(user2)) &&
               assertFails(getStreet(user3))
-            } @@ ignore
+            }
         }
     }
 }
