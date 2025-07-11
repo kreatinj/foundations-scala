@@ -134,9 +134,10 @@ object Collections extends ZIOSpecDefault {
 
             val list1 = List(0, 3, 0, 2, 1)
 
-            def list2: List[Even] = list1.collect({
-              case i if isEven(i) => Even(i)
-            })
+            def list2: List[Even] =
+              list1.collect({
+                case i if isEven(i) => Even(i)
+              })
 
             assertTrue(list2 == List(Even(0), Even(0), Even(2)))
           } +
@@ -262,7 +263,7 @@ object Collections extends ZIOSpecDefault {
                * Using `List#foldLeft`, compute the reverse of a list.
                */
               test("reverse") {
-                def reverse[A](list: List[A]): List[A] = 
+                def reverse[A](list: List[A]): List[A] =
                   list.foldLeft(List.empty[A])((acc, elem) => elem :: acc)
 
                 assertTrue(reverse(List(1, 7, 3)) == List(3, 7, 1))
@@ -275,10 +276,17 @@ object Collections extends ZIOSpecDefault {
                * satisfying the predicate.
                */
               test("partition") {
-                def partition[A](list: List[A])(pred: A => Boolean): (List[A], List[A]) = ???
+                def partition[A](list: List[A])(pred: A => Boolean): (List[A], List[A]) = {
+                  val (trueList, falseList) = list.foldLeft((List.empty[A], List.empty[A])) {
+                    case ((trueList, falseList), elem) =>
+                      if (pred(elem)) (elem :: trueList, falseList)
+                      else (trueList, elem :: falseList)
+                  }
+                  (trueList.reverse, falseList.reverse)
+                }
 
                 assertTrue(partition(List(1, 7, 3))(_ < 5) == ((List(1, 3), List(7))))
-              } @@ ignore +
+              } +
               /**
                * EXERCISE
                *
@@ -286,10 +294,18 @@ object Collections extends ZIOSpecDefault {
                * elements from a list.
                */
               test("take") {
-                def take[A](n: Int, list: List[A]): List[A] = ???
+                def take[A](n: Int, list: List[A]): List[A] =
+                  list
+                    .foldLeft(((List.empty[A], n))) {
+                      case ((acc, remaining), elem) =>
+                        if (remaining > 0) (elem :: acc, remaining - 1)
+                        else (acc, remaining)
+                    }
+                    ._1
+                    .reverse
 
                 assertTrue(take(2, List(1, 7, 3)) == List(1, 7))
-              } @@ ignore +
+              } +
               /**
                * EXERCISE
                *
@@ -297,10 +313,18 @@ object Collections extends ZIOSpecDefault {
                * from a list for as long as a predicate is satisfied.
                */
               test("takeWhile") {
-                def takeWhile[A](list: List[A])(pred: A => Boolean): List[A] = ???
+                def takeWhile[A](list: List[A])(pred: A => Boolean): List[A] =
+                  list
+                    .foldLeft((List.empty[A], true)) {
+                      case ((acc, flag), elem) =>
+                        if (flag && pred(elem)) (elem :: acc, true)
+                        else (acc, false)
+                    }
+                    ._1
+                    .reverse
 
                 assertTrue(takeWhile(List(1, 7, 3))(_ < 5) == List(1))
-              } @@ ignore
+              }
           }
       } +
         suite("performance") {
@@ -313,13 +337,10 @@ object Collections extends ZIOSpecDefault {
            */
           test("head/tail") {
             def sum(values: Seq[Int]): Int =
-              values.headOption match {
-                case None        => 0
-                case Some(value) => value + sum(values.drop(1))
-              }
+              values.foldLeft(0)(_ + _)
 
             assertTrue(sum(0 to 10000) > 0)
-          } @@ ignore +
+          } +
             /**
              * EXERCISE
              *
@@ -327,16 +348,11 @@ object Collections extends ZIOSpecDefault {
              * by changing the collection type used.
              */
             test("random access") {
-              def sumProduct(left: Seq[Int], right: Seq[Int]): Int = {
-                val length = left.length.max(right.length)
-
-                (0 to length).foldLeft(0) {
-                  case (sum, index) => sum + left(index) * right(index)
-                }
-              }
-
+              def sumProduct(left: Seq[Int], right: Seq[Int]): Int =
+                (left zip right).foldLeft(0) { case (acc, (l, r)) => acc + l * r }
+              
               assertTrue(sumProduct(List.fill(1000)(2), List.fill(1000)(2)) > 0)
-            } @@ ignore +
+            } +
             /**
              * EXERCISE
              *
@@ -349,7 +365,7 @@ object Collections extends ZIOSpecDefault {
                   right.forall(i => left.contains(i))
 
               assertTrue(equivalent(List.fill(1000)(2), List.fill(1000)(2)))
-            } @@ ignore
+            }
         }
     }
 }
