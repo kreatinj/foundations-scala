@@ -25,7 +25,7 @@ object Exceptions extends ZIOSpecDefault {
          * Modify `parseInt` to return an `Option`.
          */
         test("Option") {
-          def parseInt(s: String) = s.toInt
+          def parseInt(s: String) = s.toIntOption
 
           def test = (parseInt(""): Any) match {
             case None => "None"
@@ -33,7 +33,7 @@ object Exceptions extends ZIOSpecDefault {
           }
 
           assertTrue(test == "None")
-        } @@ ignore +
+        } +
           /**
            * EXERCISE
            *
@@ -42,7 +42,7 @@ object Exceptions extends ZIOSpecDefault {
           test("Try") {
             import scala.util._
 
-            def parseInt(s: String) = s.toInt
+            def parseInt(s: String) = Try(s.toInt)
 
             def test = (parseInt(""): Any) match {
               case Failure(_) => "Failure"
@@ -50,7 +50,7 @@ object Exceptions extends ZIOSpecDefault {
             }
 
             assertTrue(test == "Failure")
-          } @@ ignore +
+          } +
           /**
            * EXERCISE
            *
@@ -58,7 +58,11 @@ object Exceptions extends ZIOSpecDefault {
            * failure to parse an integer.
            */
           test("Either") {
-            def parseInt(s: String) = s.toInt
+            def parseInt(s: String) =
+              try Right(s.toInt)
+              catch {
+                case e: NumberFormatException => Left(e)
+              }
 
             def test = (parseInt(""): Any) match {
               case Left(_) => "Left"
@@ -66,7 +70,7 @@ object Exceptions extends ZIOSpecDefault {
             }
 
             assertTrue(test == "Left")
-          } @@ ignore
+          }
       } +
         suite("map") {
 
@@ -84,15 +88,13 @@ object Exceptions extends ZIOSpecDefault {
             final case class Id private (value: Int)
 
             object Id {
-              def fromString(value: String): Option[Id] = {
+              def fromString(value: String): Option[Id] =
                 parseInt(value)
-
-                ???
-              }
+                  .map(Id(_))
             }
 
             assertTrue(Id.fromString("123").isDefined)
-          } @@ ignore +
+          } +
             /**
              * EXERCISE
              *
@@ -108,15 +110,15 @@ object Exceptions extends ZIOSpecDefault {
               final case class Id private (value: Int)
 
               object Id {
-                def fromString(value: String): Try[Id] = {
-                  parseInt(value)
-
-                  ???
-                }
+                def fromString(value: String): Try[Id] =
+                  parseInt(value).map {
+                    case intValue if intValue >= 0 => Id(intValue)
+                    case _                         => throw new Exception("Id must be non-negative")
+                  }
               }
 
               assertTrue(Id.fromString("123").isSuccess)
-            } @@ ignore +
+            } +
             /**
              * EXERCISE
              *
@@ -134,15 +136,15 @@ object Exceptions extends ZIOSpecDefault {
               final case class Id private (value: Int)
 
               object Id {
-                def fromString(value: String): Either[String, Id] = {
-                  parseInt(value)
-
-                  ???
-                }
+                def fromString(value: String): Either[String, Id] =
+                  parseInt(value).map {
+                    case intValue if intValue >= 0 => Id(intValue)
+                    case _                         => throw new Exception("Id must be non-negative")
+                  }
               }
 
               assertTrue(Id.fromString("123").isRight)
-            } @@ ignore
+            }
         } +
         suite("fallback") {
 
@@ -154,10 +156,10 @@ object Exceptions extends ZIOSpecDefault {
            * hand side.
            */
           test("Option") {
-            def fallback[A](left: Option[A], right: Option[A]): Option[A] = ???
+            def fallback[A](left: Option[A], right: Option[A]): Option[A] = left.orElse(right)
 
             assertTrue(fallback(None, Some(42)) == Some(42))
-          } @@ ignore +
+          } +
             /**
              * EXERCISE
              *
@@ -168,10 +170,10 @@ object Exceptions extends ZIOSpecDefault {
             test("Try") {
               import scala.util._
 
-              def fallback[A](left: Try[A], right: Try[A]): Try[A] = ???
+              def fallback[A](left: Try[A], right: Try[A]): Try[A] = left.orElse(right)
 
               assertTrue(fallback(Failure(new Throwable), Success(42)) == Success(42))
-            } @@ ignore +
+            } +
             /**
              * EXERCISE
              *
@@ -180,10 +182,10 @@ object Exceptions extends ZIOSpecDefault {
              * hand side.
              */
             test("Either") {
-              def fallback[E, A](left: Either[E, A], right: Either[E, A]): Either[E, A] = ???
+              def fallback[E, A](left: Either[E, A], right: Either[E, A]): Either[E, A] = left.orElse(right)
 
               assertTrue(fallback(Left("Uh oh!"), Right(42)) == Right(42))
-            } @@ ignore
+            }
         } +
         suite("flatMap") {
 
@@ -199,18 +201,18 @@ object Exceptions extends ZIOSpecDefault {
               try Some(i.toInt)
               catch { case _: Throwable => None }
 
-            final case class Natural(value: Int)
+            final case class Natural private (value: Int)
 
             object Natural {
-              def fromString(value: String): Option[Natural] = {
-                parseInt(value)
-
-                ???
-              }
+              def fromString(value: String): Option[Natural] =
+                parseInt(value).flatMap { intValue =>
+                  if (intValue >= 0) Some(Natural(intValue))
+                  else None
+                }
             }
 
             assertTrue(Natural.fromString("123").isDefined)
-          } @@ ignore +
+          } +
             /**
              * EXERCISE
              *
@@ -223,18 +225,18 @@ object Exceptions extends ZIOSpecDefault {
 
               def parseInt(i: String): Try[Int] = Try(i.toInt)
 
-              final case class Natural(value: Int)
+              final case class Natural private (value: Int)
 
               object Natural {
-                def fromString(value: String): Try[Natural] = {
-                  parseInt(value)
-
-                  ???
-                }
+                def fromString(value: String): Try[Natural] =
+                  parseInt(value).flatMap { intValue =>
+                    if (intValue >= 0) Success(Natural(intValue))
+                    else Failure(new Exception("Natural must be non-negative"))
+                  }
               }
 
               assertTrue(Natural.fromString("123").isSuccess)
-            } @@ ignore +
+            } +
             /**
              * EXERCISE
              *
