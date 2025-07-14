@@ -15,7 +15,7 @@ package net.degoes.lambdas
 
 import zio._
 import zio.test._
-import zio.test.TestAspect._
+// import zio.test.TestAspect._
 
 object Lambdas extends ZIOSpecDefault {
   def assertTypeEquals[A, B](implicit ev: A <:< B) = assertCompletes
@@ -31,10 +31,10 @@ object Lambdas extends ZIOSpecDefault {
          * the `square` variable
          */
         test("square") {
-          val square: Int => Int = ???
+          val square: Int => Int = x => x * x
 
           assertTrue(square(3) == 9)
-        } @@ ignore +
+        } +
           test("plus") {
 
             /**
@@ -43,20 +43,20 @@ object Lambdas extends ZIOSpecDefault {
              * Create a lambda with two arguments, which adds them together, and
              * store the lambda into the `plus` variable.
              */
-            val plus: (Int, Int) => Int = ???
+            val plus: (Int, Int) => Int = (a, b) => a + b
 
             assertTrue(plus(2, 2) == 4)
-          } @@ ignore +
+          } +
           /**
            * EXERCISE
            *
            * Use the `_` to create a lambda that adds one to its argument.
            */
           test("underscore") {
-            val addTwo: Int => Int = ???
+            val addTwo: Int => Int = _ + 2
 
             assertTrue(addTwo(2) == 4)
-          } @@ ignore +
+          } +
           /**
            * EXERCISE
            *
@@ -70,10 +70,10 @@ object Lambdas extends ZIOSpecDefault {
 
             val _ = (convertToString, countLength)
 
-            val numberOfDigits: Int => Int = ???
+            val numberOfDigits: Int => Int = convertToString.andThen(countLength)
 
             assertTrue(numberOfDigits(123) == 3)
-          } @@ ignore +
+          } +
           /**
            * EXERCISE
            *
@@ -89,10 +89,10 @@ object Lambdas extends ZIOSpecDefault {
 
             val _ = (convertToString, countLength)
 
-            val numberOfDigits: Int => Int = ???
+            val numberOfDigits: Int => Int = countLength.compose(convertToString)
 
             assertTrue(numberOfDigits(123) == 3)
-          } @@ ignore +
+          } +
           /**
            * EXERCISE
            *
@@ -100,10 +100,10 @@ object Lambdas extends ZIOSpecDefault {
            * argument.
            */
           test("identity") {
-            val sameString: String => String = ???
+            val sameString: String => String = Predef.identity
 
             assertTrue(sameString("foobar") == "foobar" && sameString("barfoo") == "barfoo")
-          } @@ ignore +
+          } +
           /**
            * EXERCISE
            *
@@ -111,10 +111,10 @@ object Lambdas extends ZIOSpecDefault {
            * regardless of whichever string argument is passed.
            */
           test("const") {
-            val answer: String => Int = ???
+            val answer: String => Int = Function.const(42)
 
             assertTrue(answer("foo") == answer("bar") && answer("foobar") == 42)
-          } @@ ignore +
+          } +
           /**
            * EXERCISE
            *
@@ -123,10 +123,10 @@ object Lambdas extends ZIOSpecDefault {
            * is passed.
            */
           test("prependSpace") {
-            val prependSpace: Int => (String => String) = ???
+            val prependSpace: Int => (String => String) = n => " " * n + _
 
             assertTrue(prependSpace(5)("foo") == "     foo")
-          } @@ ignore +
+          } +
           /**
            * EXERCISE
            *
@@ -136,11 +136,14 @@ object Lambdas extends ZIOSpecDefault {
            * function the specified number of times.
            */
           test("repeat") {
-            val repeat: Int => (String => String) => (String => String) =
-              ???
+            val repeat: Int => (String => String) => (String => String) = n =>
+              f => {
+                def loop(n: Int, ans: String): String = if (n == 0) ans else loop(n - 1, f(ans))
+                loop(n, _)
+              }
 
             assertTrue(repeat(5)(_ + ".")("Coming soon") == "Coming soon.....")
-          } @@ ignore
+          }
       } +
         suite("types") {
 
@@ -153,10 +156,10 @@ object Lambdas extends ZIOSpecDefault {
           test("example 1") {
             val f = (x: Int) => x * x
 
-            type Type = f.type // EDIT HERE
+            type Type = Int => Int
 
             assertTypeEquals[f.type, Type]
-          } @@ ignore +
+          } +
             /**
              * EXERCISE
              *
@@ -166,10 +169,10 @@ object Lambdas extends ZIOSpecDefault {
             test("example 2") {
               val f = (x: Int, y: Int) => x + y
 
-              type Type = f.type // EDIT HERE
+              type Type = (Int, Int) => Int
 
               assertTypeEquals[f.type, Type]
-            } @@ ignore +
+            } +
             /**
              * EXERCISE
              *
@@ -179,10 +182,10 @@ object Lambdas extends ZIOSpecDefault {
             test("example 3") {
               val f = (t: (Int, Int)) => t._1 + t._2
 
-              type Type = f.type // EDIT HERE
+              type Type = ((Int, Int)) => Int
 
               assertTypeEquals[f.type, Type]
-            } @@ ignore +
+            } +
             /**
              * EXERCISE
              *
@@ -192,10 +195,10 @@ object Lambdas extends ZIOSpecDefault {
             test("example 4") {
               val f = (x: Int) => (y: Int) => x + y
 
-              type Type = f.type // EDIT HERE
+              type Type = Int => Int => Int
 
               assertTypeEquals[f.type, Type]
-            } @@ ignore +
+            } +
             /**
              * EXERCISE
              *
@@ -205,10 +208,10 @@ object Lambdas extends ZIOSpecDefault {
             test("example 5") {
               val f = (x: Int) => (g: Int => Int) => g(x)
 
-              type Type = f.type // EDIT HERE
+              type Type = Int => (Int => Int) => Int
 
               assertTypeEquals[f.type, Type]
-            } @@ ignore
+            }
         } +
         suite("partiality") {
 
@@ -219,11 +222,12 @@ object Lambdas extends ZIOSpecDefault {
            * second component of the tuple is non-zero.
            */
           test("divide") {
-            val divide: PartialFunction[(Int, Int), Int] =
-              ???
+            val divide: PartialFunction[(Int, Int), Int] = {
+              case (x1, x2) if x2 != 0 => x1 / x2
+            }
 
             assertTrue(!divide.isDefinedAt((42, 0)))
-          } @@ ignore +
+          } +
             /**
              * EXERCISE
              *
@@ -237,10 +241,10 @@ object Lambdas extends ZIOSpecDefault {
 
               val _ = divide
 
-              def divideOption: ((Int, Int)) => Option[Int] = ???
+              def divideOption: ((Int, Int)) => Option[Int] = divide.lift
 
               assertTrue(divideOption((42, 0)) == None)
-            } @@ ignore
+            }
         }
     }
 }
@@ -265,7 +269,7 @@ object LambdasGraduation extends ZIOAppDefault {
      * Implement a parser that succeeds with the specified value, but does not
      * consume any input.
      */
-    def succeed[A](a: => A): Parser[A] = ???
+    def succeed[A](a: => A): Parser[A] = x => Right((x, a))
 
     /**
      * EXERCISE
@@ -273,7 +277,7 @@ object LambdasGraduation extends ZIOAppDefault {
      * Implement a parser that fails with the specified message, and does not
      * consume any input.
      */
-    def fail(message: => String): Parser[Nothing] = ???
+    def fail(message: => String): Parser[Nothing] = _ => Left(message)
 
     /**
      * EXERCISE
@@ -281,7 +285,10 @@ object LambdasGraduation extends ZIOAppDefault {
      * Implement a parser that consumes any character, or fails if there are
      * no characters left to consume.
      */
-    def anyChar: Parser[Char] = ???
+    def anyChar: Parser[Char] =
+      x =>
+        if (x.length() > 0) succeed(x.charAt(0))(x)
+        else fail("there are no characters left to consume")(x)
 
     /**
      * EXERCISE
@@ -289,7 +296,7 @@ object LambdasGraduation extends ZIOAppDefault {
      * Implement a parser that parses only the specified character, or fails
      * with a message indicating which character was expected.
      */
-    def char(char: Char): Parser[Unit] = ???
+    def char(char: Char): Parser[Unit] = x => ???
   }
 
   implicit class ParserExtensionMethods[A](self: Parser[A]) {
@@ -303,7 +310,12 @@ object LambdasGraduation extends ZIOAppDefault {
      * into the provided callback, which can return a new parser which
      * will be fed the leftover input of this parser.
      */
-    def flatMap[B](f: A => Parser[B]): Parser[B] = ???
+    def flatMap[B](f: A => Parser[B]): Parser[B] =
+      x =>
+        self(x) match {
+          case Left(value)  => Parser.fail(value)(x)
+          case Right(value) => f(value._2)(x)
+        }
 
     def ~[B](that: => Parser[B]): Parser[(A, B)] =
       self.flatMap(a => that.map(b => (a, b)))
