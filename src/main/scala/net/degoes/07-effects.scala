@@ -26,12 +26,12 @@ object Effects extends ZIOSpecDefault {
          * value `42`.
          */
         test("succeed") {
-          def effect: ZIO[Any, Nothing, Int] = ???
+          def effect: ZIO[Any, Nothing, Int] = ZIO.succeed(42)
 
           for {
             result <- effect
           } yield assertTrue(result == 42)
-        } @@ ignore +
+        } +
           /**
            * EXERCISE
            *
@@ -43,12 +43,12 @@ object Effects extends ZIOSpecDefault {
 
             val _ = either
 
-            def effect: ZIO[Any, String, Int] = ???
+            def effect: ZIO[Any, String, Int] = ZIO.fromEither(either)
 
             for {
               result <- effect
             } yield assertTrue(result == 42)
-          } @@ ignore +
+          } +
           /**
            * EXERCISE
            *
@@ -60,12 +60,12 @@ object Effects extends ZIOSpecDefault {
 
             val _ = option
 
-            def effect: ZIO[Any, Option[Nothing], Int] = ???
+            def effect: ZIO[Any, Option[Nothing], Int] = ZIO.fromOption(option)
 
             for {
               result <- effect
             } yield assertTrue(result == 42)
-          } @@ ignore
+          }
       } +
         suite("operators") {
 
@@ -77,13 +77,13 @@ object Effects extends ZIOSpecDefault {
            * text that is read from the console.
            */
           test("map") {
-            val readInt: IO[IOException, Int] = ???
+            val readInt: IO[IOException, Int] = Console.readLine.map(_.length)
 
             for {
               _   <- TestConsole.feedLines("Sherlock")
               int <- readInt
             } yield assertTrue(int == 8)
-          } @@ ignore +
+          } +
             /**
              * EXERCISE
              *
@@ -95,12 +95,12 @@ object Effects extends ZIOSpecDefault {
 
               val failure = ZIO.fail(errorCode)
 
-              val mappedFailure: IO[String, Nothing] = failure.mapError(???)
+              val mappedFailure: IO[String, Nothing] = failure.mapError(_.toString())
 
               for {
                 value <- mappedFailure.flip
               } yield assertTrue(value == "42")
-            } @@ ignore +
+            } +
             /**
              * EXERCISE
              *
@@ -113,13 +113,13 @@ object Effects extends ZIOSpecDefault {
               val _ = first
               val _ = last
 
-              val zipped: ZIO[Any, IOException, Unit] = ???
+              val zipped: ZIO[Any, IOException, Unit] = first.zip(last)
 
               for {
                 _      <- zipped
                 output <- TestConsole.output
               } yield assertTrue(output == Vector("Sherlock\n", "Holmes\n"))
-            } @@ ignore +
+            } +
             /**
              * EXERCISE
              *
@@ -133,12 +133,12 @@ object Effects extends ZIOSpecDefault {
               val _ = first
               val _ = second
 
-              val zipLeft: UIO[String] = ???
+              val zipLeft: UIO[String] = first *> second
 
               for {
                 result <- zipLeft
               } yield assertTrue(result == "Roger Rabbit")
-            } @@ ignore +
+            } +
             /**
              * EXERCISE
              *
@@ -152,12 +152,12 @@ object Effects extends ZIOSpecDefault {
               val _ = first
               val _ = second
 
-              val zipLeft: UIO[Int] = ???
+              val zipLeft: UIO[Int] = first <* second
 
               for {
                 result <- zipLeft
               } yield assertTrue(result == 42)
-            } @@ ignore +
+            } +
             /**
              * EXERCISE
              *
@@ -169,7 +169,13 @@ object Effects extends ZIOSpecDefault {
              */
             test("flatMap") {
 
-              def program: ZIO[Any, IOException, Unit] = ???
+              def program: ZIO[Any, IOException, Unit] =
+                for {
+                  _    <- Console.printLine("What is your name?")
+                  name <- Console.readLine
+                  _    <- Console.printLine(name)
+                  _    <- Console.printLine(s"Hello, ${name}!")
+                } yield ()
 
               val expected =
                 Vector("What is your name?\n", "Sherlock\n", "Hello, Sherlock!\n")
@@ -179,7 +185,7 @@ object Effects extends ZIOSpecDefault {
                 _      <- program
                 output <- TestConsole.output
               } yield assertTrue(output == expected)
-            } @@ ignore +
+            } +
             /**
              * EXERCISE
              *
@@ -188,12 +194,12 @@ object Effects extends ZIOSpecDefault {
              */
             test("catchAll") {
               def effect: ZIO[Any, Nothing, String] =
-                ZIO.fail("Uh oh!").FIXME
+                ZIO.fail("Uh oh!").catchAll(_ => ZIO.succeed("Recovered!"))
 
               for {
                 value <- effect
               } yield assertTrue(value == "Recovered!")
-            } @@ ignore +
+            } +
             /**
              * EXERCISE
              *
@@ -202,12 +208,17 @@ object Effects extends ZIOSpecDefault {
              */
             test("foldZIO") {
               def effect: ZIO[Any, Nothing, String] =
-                ZIO.fail("Failure").FIXME
+                ZIO
+                  .fail("Failure")
+                  .foldZIO(
+                    error => ZIO.succeed("Did it!"),
+                    success => ZIO.succeed("Did it!")
+                  )
 
               for {
                 value <- effect
               } yield assertTrue(value == "Did it!")
-            } @@ ignore +
+            } +
             /**
              * EXERCISE
              *
@@ -216,7 +227,15 @@ object Effects extends ZIOSpecDefault {
              * returns true (but no longer).
              */
             test("recursion") {
-              def iterate[R, E, S](start: S)(pred: S => Boolean)(f: S => ZIO[R, E, S]): ZIO[R, E, S] = ???
+              def iterate[R, E, S](start: S)(pred: S => Boolean)(f: S => ZIO[R, E, S]): ZIO[R, E, S] =
+                if (pred(start)) {
+                  for {
+                    next   <- f(start)
+                    result <- iterate(next)(pred)(f)
+                  } yield result
+                } else {
+                  ZIO.succeed(start)
+                }
 
               val iterationResult =
                 iterate(List.empty[String])(_.length < 3) { list =>
@@ -226,7 +245,7 @@ object Effects extends ZIOSpecDefault {
               for {
                 list <- iterationResult
               } yield assertTrue(list == List("a", "a", "a"))
-            } @@ ignore +
+            } +
             /**
              * EXERCISE
              *
@@ -246,20 +265,17 @@ object Effects extends ZIOSpecDefault {
               def getDocs(): Try[Docs]            = Try(List("Doc 1", "Doc 2"))
               def getPrefs(): Option[Prefs]       = Some(Map("autosave" -> true))
 
-              def getUserZIO: IO[UnknownUserError, User] = {
-                getUser()
-                ???
-              }
+              def getUserZIO: IO[UnknownUserError, User] =
+                getUser().fold(
+                  error => ZIO.fail(UnknownUserError(error)),
+                  user => ZIO.succeed(user)
+                )
 
-              def getDocsZIO: IO[Throwable, Docs] = {
-                getDocs()
-                ???
-              }
+              def getDocsZIO: IO[Throwable, Docs] =
+                ZIO.fromTry(getDocs())
 
-              def getPrefsZIO: IO[NoPreferencesError, Prefs] = {
-                getPrefs()
-                ???
-              }
+              def getPrefsZIO: IO[NoPreferencesError, Prefs] =
+                ZIO.fromOption(getPrefs()).mapError(_ => NoPreferencesError())
 
               for {
                 user  <- getUserZIO
@@ -269,7 +285,7 @@ object Effects extends ZIOSpecDefault {
                 user == "sherlock@holmes.com" && docs == List("Doc 1", "Doc 2") && prefs == Map("autosave" -> true)
               )
 
-            } @@ ignore
+            }
         } +
         suite("control flow") {
 
@@ -287,11 +303,11 @@ object Effects extends ZIOSpecDefault {
             for {
               accum  <- Ref.make[List[String]](Nil)
               worker = makeWorker(accum)
-              fiber  <- worker.fork
+              fiber  <- worker.forever.fork
               _      <- accum.get.repeatUntil(_.length > 10) *> fiber.interrupt
               result <- accum.get
             } yield assertTrue(result.length > 10)
-          } @@ ignore +
+          } +
             /**
              * EXERCISE
              *
@@ -308,9 +324,9 @@ object Effects extends ZIOSpecDefault {
               for {
                 ref    <- Ref.make(0)
                 worker = makeWorker(ref)
-                result <- worker
+                result <- worker.eventually
               } yield assertTrue(result == "Success!")
-            } @@ ignore +
+            } +
             /**
              * EXERCISE
              *
@@ -321,10 +337,10 @@ object Effects extends ZIOSpecDefault {
               for {
                 ref    <- Ref.make(0)
                 effect = ref.update(_ + 1)
-                _      <- effect
+                _      <- effect.repeatN(5)
                 result <- ref.get
               } yield assertTrue(result == 6)
-            } @@ ignore +
+            } +
             /**
              * EXERCISE
              *
@@ -347,10 +363,10 @@ object Effects extends ZIOSpecDefault {
               for {
                 ref    <- Ref.make(false)
                 _      <- TestConsole.feedLines("y")
-                _      <- continue
+                _      <- ZIO.whenZIO(continue)(ref.set(true))
                 result <- ref.get
               } yield assertTrue(result)
-            } @@ ignore
+            }
         }
     }
 }
