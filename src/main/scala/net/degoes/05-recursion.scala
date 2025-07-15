@@ -26,20 +26,36 @@ object Recursion extends ZIOSpecDefault {
          * Using recursion, compute the sum of a list of integers.
          */
         test("sum") {
-          def sum(list: List[Int]): Int = ???
+          def sum(list: List[Int]): Int = {
+            def loop (list: List[Int], acc: Int): Int = list match {
+              case Nil         => acc
+              case head :: tail => loop(tail, acc + head)
+            }
+
+            loop(list, 0)
+          }
 
           assertTrue(sum(List(1, 2, 3, 4, 5)) == 15)
-        } @@ ignore +
+        } +
           /**
            * EXERCISE
            *
            * Using recursion, compute the maximum of a list of integers.
            */
           test("max") {
-            def max(list: List[Int]): Int = ???
+            def max(list: List[Int]): Int = {
+              def loop(list: List[Int], currentMax: Int): Int = list match {
+                case Nil => currentMax
+                case head :: tail =>
+                  if (head > currentMax) loop(tail, head)
+                  else loop(tail, currentMax)
+              }
+
+              loop(list, Int.MinValue)
+            }
 
             assertTrue(max(List(1, 7, 3, 2, 4, 5)) == 7)
-          } @@ ignore +
+          } +
           /**
            * EXERCISE
            *
@@ -47,13 +63,17 @@ object Recursion extends ZIOSpecDefault {
            */
           test("prime") {
             def isPrime(n: Int): Boolean = {
-              def loop(n: Int, divisor: Int): Boolean = ???
+              def loop(n: Int, divisor: Int): Boolean = {
+                if (divisor * divisor > n) true
+                else if (n % divisor == 0) false
+                else loop(n, divisor + 1)
+              }
 
               loop(n, 2)
             }
 
             assertTrue(!isPrime(4) && isPrime(7) && isPrime(11))
-          } @@ ignore +
+          } +
           /**
            * EXERCISE
            *
@@ -61,10 +81,18 @@ object Recursion extends ZIOSpecDefault {
            * sequence is given by, 0, 1, 1, <sum of two previous nums>...
            */
           test("fibs") {
-            def fib(n: Int): Int = ???
+            def fib(n: Int): Int = {
+              def loop(n: Int, a: Int, b: Int): Int = n match {
+                case 0 => a
+                case 1 => b
+                case _ => loop(n - 1, b, a + b)
+              }
+
+              loop(n, 0, 1)
+            }
 
             assertTrue(fib(3) == 2 && fib(4) == 3 && fib(5) == 5)
-          } @@ ignore +
+          } +
           /**
            * EXERCISE
            *
@@ -73,10 +101,21 @@ object Recursion extends ZIOSpecDefault {
            * head (separately), then concatenating them in the right order.
            */
           test("pivot sort") {
-            def sort[A](list: List[A])(implicit ordering: Ordering[A]): List[A] = ???
+            def sort[A](list: List[A])(implicit ordering: Ordering[A]): List[A] = {
+              def loop(list: List[A]): List[A] = {
+                list match {
+                  case Nil => Nil
+                  case head :: next => {
+                    val (less, greater) = next.partition(ordering.compare(_, head) < 0)
+                    loop(less) ++ (head :: loop(greater))
+                  }
+                }
+              }
+              loop(list)
+            }
 
             assertTrue(sort(List(9, 23, 1, 5)) == List(1, 5, 9, 23))
-          } @@ ignore +
+          } +
           /**
            * EXERCISE
            *
