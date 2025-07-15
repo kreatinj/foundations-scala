@@ -27,8 +27,8 @@ object Recursion extends ZIOSpecDefault {
          */
         test("sum") {
           def sum(list: List[Int]): Int = {
-            def loop (list: List[Int], acc: Int): Int = list match {
-              case Nil         => acc
+            def loop(list: List[Int], acc: Int): Int = list match {
+              case Nil          => acc
               case head :: tail => loop(tail, acc + head)
             }
 
@@ -63,11 +63,10 @@ object Recursion extends ZIOSpecDefault {
            */
           test("prime") {
             def isPrime(n: Int): Boolean = {
-              def loop(n: Int, divisor: Int): Boolean = {
+              def loop(n: Int, divisor: Int): Boolean =
                 if (divisor * divisor > n) true
                 else if (n % divisor == 0) false
                 else loop(n, divisor + 1)
-              }
 
               loop(n, 2)
             }
@@ -101,7 +100,7 @@ object Recursion extends ZIOSpecDefault {
            * head (separately), then concatenating them in the right order.
            */
           test("pivot sort") {
-            def sort[A](list: List[A])(implicit ordering: Ordering[A]): List[A] = {
+            def sort[A](list: List[A])(implicit ordering: Ordering[A]): List[A] =
               list match {
                 case Nil => Nil
                 case head :: next => {
@@ -109,7 +108,6 @@ object Recursion extends ZIOSpecDefault {
                   sort(less) ++ (head :: sort(greater))
                 }
               }
-            }
 
             assertTrue(sort(List(9, 23, 1, 5)) == List(1, 5, 9, 23))
           } +
