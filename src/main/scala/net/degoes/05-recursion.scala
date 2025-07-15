@@ -26,13 +26,9 @@ object Recursion extends ZIOSpecDefault {
          * Using recursion, compute the sum of a list of integers.
          */
         test("sum") {
-          def sum(list: List[Int]): Int = {
-            def loop(list: List[Int], acc: Int): Int = list match {
-              case Nil          => acc
-              case head :: tail => loop(tail, acc + head)
-            }
-
-            loop(list, 0)
+          def sum(list: List[Int]): Int = list match {
+            case Nil          => 0
+            case head :: tail => head + sum(tail)
           }
 
           assertTrue(sum(List(1, 2, 3, 4, 5)) == 15)
@@ -43,15 +39,10 @@ object Recursion extends ZIOSpecDefault {
            * Using recursion, compute the maximum of a list of integers.
            */
           test("max") {
-            def max(list: List[Int]): Int = {
-              def loop(list: List[Int], currentMax: Int): Int = list match {
-                case Nil => currentMax
-                case head :: tail =>
-                  if (head > currentMax) loop(tail, head)
-                  else loop(tail, currentMax)
-              }
-
-              loop(list, Int.MinValue)
+            def max(list: List[Int]): Int = list match {
+              case Nil          => Int.MinValue
+              case head :: Nil  => head
+              case head :: tail => math.max(head, max(tail))
             }
 
             assertTrue(max(List(1, 7, 3, 2, 4, 5)) == 7)
@@ -80,14 +71,10 @@ object Recursion extends ZIOSpecDefault {
            * sequence is given by, 0, 1, 1, <sum of two previous nums>...
            */
           test("fibs") {
-            def fib(n: Int): Int = {
-              def loop(n: Int, a: Int, b: Int): Int = n match {
-                case 0 => a
-                case 1 => b
-                case _ => loop(n - 1, b, a + b)
-              }
-
-              loop(n, 0, 1)
+            def fib(n: Int): Int = n match {
+              case 0 => 0
+              case 1 => 1
+              case _ => fib(n - 1) + fib(n - 2)
             }
 
             assertTrue(fib(3) == 2 && fib(4) == 3 && fib(5) == 5)
@@ -118,12 +105,18 @@ object Recursion extends ZIOSpecDefault {
            * satisfied.
            */
           test("loop") {
-            def loop[S](start: S)(pred: S => Boolean)(iterate: S => S): S = ???
+            def loop[S](start: S)(pred: S => Boolean)(iterate: S => S): S = {
+              def next(current: S): S =
+                if (pred(current)) next(iterate(current))
+                else current
+
+              next(start)
+            }
 
             val inc = loop(0)(_ < 10)(_ + 1)
 
             assertTrue(inc == 10)
-          } @@ ignore +
+          } +
           /**
            * EXERCISE
            *
@@ -141,50 +134,69 @@ object Recursion extends ZIOSpecDefault {
                   head
               }
 
-            def repeatWhile[A, S](action: () => A)(pred: A => Boolean)(reducer: (A, A) => A): A = ???
+            def repeatWhile[A, S](action: () => A)(pred: A => Boolean)(reducer: (A, A) => A): A = {
+              def next(current: A): A =
+                if (pred(current)) current
+                else next(reducer(current, action()))
+              next(action())
+            }
 
             val result = repeatWhile(readLine)(_ == "Sherlock")((a, b) => b)
 
             assertTrue(result == "Sherlock")
-          } @@ ignore
+          }
 
       } +
         suite("tail recursion") {
-          // import scala.annotation.tailrec
+          import scala.annotation.tailrec
+
           /**
            * EXERCISE
            *
            * Write a tail-recursive version of the previous `sum`.
            */
           test("sum") {
-            // @tailrec
-            def sum(list: List[Int]): Int = ???
+            @tailrec
+            def sum(list: List[Int], acc: Int = 0): Int = list match {
+              case Nil          => acc
+              case head :: tail => sum(tail, acc + head)
+            }
 
             assertTrue(sum(List(1, 2, 3, 4, 5)) == 15)
-          } @@ ignore +
+          } +
             /**
              * EXERCISE
              *
              * Write a tail-recursive version of the previous `max`.
              */
             test("max") {
-              // @tailrec
-              def max(list: List[Int]): Int = ???
+              @tailrec
+              def max(list: List[Int], acc: Int = Int.MinValue): Int = list match {
+                case Nil          => acc
+                case head :: tail => max(tail, math.max(head, acc))
+              }
 
               assertTrue(max(List(1, 7, 3, 2, 4, 5)) == 7)
-            } @@ ignore +
+            } +
             /**
              * EXERCISE
              *
              * Write a tail-recursive version of the previous `loop`.
              */
             test("loop") {
-              def loop[S](start: S)(pred: S => Boolean)(iterate: S => S): S = ???
+              def loop[S](start: S)(pred: S => Boolean)(iterate: S => S): S = {
+                @tailrec
+                def next(current: S): S =
+                  if (pred(current)) next(iterate(current))
+                  else current
+
+                next(start)
+              }
 
               val inc = loop(0)(_ < 10)(_ + 1)
 
               assertTrue(inc == 10)
-            } @@ ignore +
+            } +
             /**
              * EXERCISE
              *
@@ -201,12 +213,18 @@ object Recursion extends ZIOSpecDefault {
                     head
                 }
 
-              def repeatWhile[A, S](action: () => A)(pred: A => Boolean)(reducer: (A, A) => A): A = ???
+              def repeatWhile[A, S](action: () => A)(pred: A => Boolean)(reducer: (A, A) => A): A = {
+                @tailrec
+                def next(current: A): A =
+                  if (pred(current)) current
+                  else next(reducer(current, action()))
+                next(action())
+              }
 
               val result = repeatWhile(readLine)(_ == "Sherlock")((a, b) => b)
 
               assertTrue(result == "Sherlock")
-            } @@ ignore +
+            } +
             /**
              * EXERCISE
              *
@@ -215,10 +233,19 @@ object Recursion extends ZIOSpecDefault {
              * WARNING: Advanced.
              */
             test("fibs") {
-              def fib(n: Int): Int = ???
+              def fib(n: Int): Int = {
+                @tailrec
+                def loop(n: Int, a: Int, b: Int): Int = n match {
+                  case 0 => a
+                  case 1 => b
+                  case _ => loop(n - 1, b, a + b)
+                }
+
+                loop(n, 0, 1)
+              }
 
               assertTrue(fib(3) == 2 && fib(4) == 3 && fib(5) == 5)
-            } @@ ignore +
+            } +
             /**
              * EXERCISE
              *
@@ -227,7 +254,14 @@ object Recursion extends ZIOSpecDefault {
              * WARNING: Advanced.
              */
             test("pivot sort") {
-              def sort[A](list: List[A])(implicit ordering: Ordering[A]): List[A] = ???
+              def sort[A](list: List[A])(implicit ordering: Ordering[A]): List[A] =
+                list match {
+                  case Nil => Nil
+                  case head :: next => {
+                    val (less, greater) = next.partition(ordering.compare(_, head) < 0)
+                    sort(less) ++ (head :: sort(greater))
+                  }
+                }
 
               assertTrue(sort(List(9, 23, 1, 5)) == List(1, 5, 9, 23))
             } @@ ignore
