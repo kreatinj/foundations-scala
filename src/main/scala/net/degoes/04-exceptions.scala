@@ -251,18 +251,18 @@ object Exceptions extends ZIOSpecDefault {
                   case e: NumberFormatException => Left(e.getMessage())
                 }
 
-              final case class Natural(value: Int)
+              final case class Natural private (value: Int)
 
               object Natural {
-                def fromString(value: String): Either[String, Natural] = {
-                  parseInt(value)
-
-                  ???
-                }
+                def fromString(value: String): Either[String, Natural] =
+                  parseInt(value).flatMap { intValue =>
+                    if (intValue >= 0) Right(Natural(intValue))
+                    else Left("Natural must be non-negative")
+                  }
               }
 
               assertTrue(Natural.fromString("123").isRight)
-            } @@ ignore
+            }
         } +
         suite("both") {
 
@@ -273,10 +273,14 @@ object Exceptions extends ZIOSpecDefault {
            * sides, will produce a tuple of those values.
            */
           test("Option") {
-            def both[A, B](left: Option[A], right: Option[B]): Option[(A, B)] = ???
+            def both[A, B](left: Option[A], right: Option[B]): Option[(A, B)] =
+              for {
+                l <- left
+                r <- right
+              } yield (l, r)
 
             assertTrue(both(Some(4), Some(2)) == Some((4, 2)))
-          } @@ ignore +
+          } +
             /**
              * EXERCISE
              *
@@ -286,10 +290,14 @@ object Exceptions extends ZIOSpecDefault {
             test("Try") {
               import scala.util._
 
-              def both[A, B](left: Try[A], right: Try[B]): Try[(A, B)] = ???
+              def both[A, B](left: Try[A], right: Try[B]): Try[(A, B)] =
+                for {
+                  l <- left
+                  r <- right
+                } yield (l, r)
 
               assertTrue(both(Try(4), Try(2)) == Try((4, 2)))
-            } @@ ignore +
+            } +
             /**
              * EXERCISE
              *
@@ -297,10 +305,14 @@ object Exceptions extends ZIOSpecDefault {
              * sides, will produce a tuple of those values.
              */
             test("Either") {
-              def both[E, A, B](left: Either[E, A], right: Either[E, B]): Either[E, (A, B)] = ???
+              def both[E, A, B](left: Either[E, A], right: Either[E, B]): Either[E, (A, B)] =
+                for {
+                  l <- left
+                  r <- right
+                } yield (l, r)
 
               assertTrue(both(Right(4), Right(2)) == Right((4, 2)))
-            } @@ ignore
+            }
         } +
         suite("porting") {
 
@@ -311,61 +323,60 @@ object Exceptions extends ZIOSpecDefault {
            */
           test("Option") {
             object Config {
-              def getHost(): String = {
+              def getHost(): Option[String] = {
                 val result = System.getProperty("CONFIG_HOST")
 
-                if (result == null) throw new RuntimeException("Host is missing")
-
-                result
+                Option(result)
               }
 
-              def getPort(): Int = {
-                val result = System.getProperty("CONFIG_HOST")
+              def getPort(): Option[Int] = {
+                val result = System.getProperty("CONFIG_PORT")
 
-                if (result == null) throw new RuntimeException("Port is missing")
-
-                result.toInt
+                Option(result).flatMap(_.toIntOption)
               }
             }
 
             final case class ConnectionInfo(host: String, port: Int)
 
-            def loadConnectionInfo(): ConnectionInfo =
-              ConnectionInfo(Config.getHost(), Config.getPort())
+            def loadConnectionInfo(): Option[ConnectionInfo] =
+              for {
+                host <- Config.getHost()
+                port <- Config.getPort()
+              } yield ConnectionInfo(host, port)
 
-            assertTrue(loadConnectionInfo().FIXME)
-          } @@ ignore +
+            assertTrue(loadConnectionInfo().isEmpty)
+          } +
             /**
              * EXERCISE
              *
              * Rewrite the following code to use `Try` instead of exceptions.
              */
             test("Try") {
+              import scala.util._
               object Config {
-                def getHost(): String = {
+                def getHost(): Try[String] = {
                   val result = System.getProperty("CONFIG_HOST")
 
-                  if (result == null) throw new RuntimeException("Host is missing")
-
-                  result
+                  Try(result)
                 }
 
-                def getPort(): Int = {
-                  val result = System.getProperty("CONFIG_HOST")
+                def getPort(): Try[Int] = {
+                  val result = System.getProperty("CONFIG_PORT")
 
-                  if (result == null) throw new RuntimeException("Port is missing")
-
-                  result.toInt
+                  Try(result.toInt)
                 }
               }
 
               final case class ConnectionInfo(host: String, port: Int)
 
-              def loadConnectionInfo(): ConnectionInfo =
-                ConnectionInfo(Config.getHost(), Config.getPort())
+              def loadConnectionInfo(): Try[ConnectionInfo] =
+                for {
+                  host <- Config.getHost()
+                  port <- Config.getPort()
+                } yield ConnectionInfo(host, port)
 
-              assertTrue(loadConnectionInfo().FIXME)
-            } @@ ignore +
+              assertTrue(loadConnectionInfo().isFailure)
+            } +
             /**
              * EXERCISE
              *
@@ -373,30 +384,32 @@ object Exceptions extends ZIOSpecDefault {
              */
             test("Either") {
               object Config {
-                def getHost(): String = {
+                def getHost(): Either[String, String] = {
                   val result = System.getProperty("CONFIG_HOST")
 
-                  if (result == null) throw new RuntimeException("Host is missing")
-
-                  result
+                  if (result == null) Left("Host is missing")
+                  else Right(result)
                 }
 
-                def getPort(): Int = {
-                  val result = System.getProperty("CONFIG_HOST")
-
-                  if (result == null) throw new RuntimeException("Port is missing")
-
-                  result.toInt
-                }
+                def getPort(): Either[String, Int] =
+                  for {
+                    result <- Option(System.getProperty("CONFIG_PORT"))
+                               .toRight("Port is missing")
+                    port <- result.toIntOption
+                             .toRight("Port must be an integer")
+                  } yield port
               }
 
               final case class ConnectionInfo(host: String, port: Int)
 
-              def loadConnectionInfo(): ConnectionInfo =
-                ConnectionInfo(Config.getHost(), Config.getPort())
+              def loadConnectionInfo(): Either[String, ConnectionInfo] =
+                for {
+                  host <- Config.getHost()
+                  port <- Config.getPort()
+                } yield ConnectionInfo(host, port)
 
-              assertTrue(loadConnectionInfo().FIXME)
-            } @@ ignore
+              assertTrue(loadConnectionInfo().isLeft)
+            }
         } +
         suite("mixed") {
 
@@ -416,13 +429,14 @@ object Exceptions extends ZIOSpecDefault {
             def getDocs: Try[Docs]    = Try(List("Doc 1", "Doc 2"))
 
             def getUserAndDocs = {
-              getUser
-              getDocs
-              ???
+              for {
+                user <- Try(getUser.get)
+                docs <- getDocs
+              } yield (user, docs)
             }
 
-            assertTrue(getUserAndDocs == ???)
-          } @@ ignore +
+            assertTrue(getUserAndDocs == Success(("sherlock@holmes.com", List("Doc 1", "Doc 2"))))
+          } +
             /**
              * EXERCISE
              *
@@ -439,13 +453,14 @@ object Exceptions extends ZIOSpecDefault {
               def getDocs: Option[Docs]         = Some(List("Doc 1", "Doc 2"))
 
               def getUserAndDocs = {
-                getUser
-                getDocs
-                ???
+                for {
+                  user <- getUser
+                  docs <- getDocs.toRight("No documents found")
+                } yield (user, docs)
               }
 
-              assertTrue(getUserAndDocs == ???)
-            } @@ ignore +
+              assertTrue(getUserAndDocs == Right(("sherlock@holmes.com", List("Doc 1", "Doc 2"))))
+            } +
             /**
              * EXERCISE
              *
@@ -462,13 +477,17 @@ object Exceptions extends ZIOSpecDefault {
               def getDocs: Try[Docs]            = Try(List("Doc 1", "Doc 2"))
 
               def getUserAndDocs = {
-                getUser
-                getDocs
-                ???
+                for {
+                  user <- getUser.fold(
+                    error => Failure(new Exception(error)),
+                    success => Success(success)
+                  )
+                  docs <- getDocs
+                } yield (user, docs)
               }
 
-              assertTrue(getUserAndDocs == ???)
-            } @@ ignore +
+              assertTrue(getUserAndDocs == Success(("sherlock@holmes.com", List("Doc 1", "Doc 2"))))
+            } +
             /**
              * EXERCISE
              *
@@ -487,14 +506,18 @@ object Exceptions extends ZIOSpecDefault {
               def getPrefs: Option[Prefs]       = Some(Map("autosave" -> true))
 
               def getUserAndDocsAndPrefs = {
-                getUser
-                getDocs
-                getPrefs
-                ???
+                for {
+                  user  <- getUser.fold(
+                             error => Failure(new Exception(error)),
+                             success => Success(success)
+                           )
+                  docs  <- getDocs
+                  prefs <- Try(getPrefs.get)
+                } yield (user, docs, prefs)
               }
 
-              assertTrue(getUserAndDocsAndPrefs == ???)
-            } @@ ignore
+              assertTrue(getUserAndDocsAndPrefs == Success(("sherlock@holmes.com", List("Doc 1", "Doc 2"), Map("autosave" -> true))))
+            }
         }
     }
 }
