@@ -30,19 +30,21 @@ object Purity extends ZIOSpecDefault {
          * Make the following function total.
          */
         test("total 1") {
-          def reduce[A](elements: List[A], f: (A, A) => A): A = {
+          def reduce[A](elements: List[A], f: (A, A) => A): Option[A] = {
             @tailrec
             def loop(current: A, elements: List[A]): A =
               elements match {
                 case Nil              => current
                 case next :: elements => loop(f(current, next), elements)
               }
-
-            loop(elements.head, elements.tail)
+            elements match {
+              case Nil          => None
+              case head :: tail => Some(loop(head, tail))
+            }
           }
 
           assertTrue(reduce[Int](List.empty[Int], _ + _) ne null)
-        } @@ ignore +
+        } +
           /**
            * EXERCISE
            *
@@ -52,16 +54,20 @@ object Purity extends ZIOSpecDefault {
             type Make = String
 
             def generateEmailSubject(make: Make, city: String, total: Double, start: MonthDay, end: MonthDay)
-              : String = {
-              val ppd = total / ChronoUnit.DAYS.between(end.atYear(2022), start.atYear(2022)).toDouble
-
-              s"Don't lose your ${make} car rental on your trip to ${city}, for only ${ppd}!"
+              : Option[String] = {
+              val days = ChronoUnit.DAYS.between(start.atYear(2022), end.atYear(2022))
+              if (days > 0) {
+                val ppd = total / days.toDouble
+                Some(s"Don't lose your ${make} car rental on your trip to ${city}, for only ${ppd}!")
+              } else {
+                None
+              }
             }
 
             assertTrue(
               generateEmailSubject("Toyota Accord", "New York City", 295.00, MonthDay.now(), MonthDay.now()) != null
             )
-          } @@ ignore +
+          } +
           /**
            * EXERCISE
            *
