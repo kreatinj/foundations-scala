@@ -12,7 +12,7 @@
 package net.degoes
 
 import zio.test._
-import zio.test.TestAspect._
+// import zio.test.TestAspect._
 
 object Exceptions extends ZIOSpecDefault {
   def spec =
@@ -428,12 +428,11 @@ object Exceptions extends ZIOSpecDefault {
             def getUser: Option[User] = Some("sherlock@holmes.com")
             def getDocs: Try[Docs]    = Try(List("Doc 1", "Doc 2"))
 
-            def getUserAndDocs = {
+            def getUserAndDocs =
               for {
                 user <- Try(getUser.get)
                 docs <- getDocs
               } yield (user, docs)
-            }
 
             assertTrue(getUserAndDocs == Success(("sherlock@holmes.com", List("Doc 1", "Doc 2"))))
           } +
@@ -452,12 +451,11 @@ object Exceptions extends ZIOSpecDefault {
               def getUser: Either[String, User] = Right("sherlock@holmes.com")
               def getDocs: Option[Docs]         = Some(List("Doc 1", "Doc 2"))
 
-              def getUserAndDocs = {
+              def getUserAndDocs =
                 for {
                   user <- getUser
                   docs <- getDocs.toRight("No documents found")
                 } yield (user, docs)
-              }
 
               assertTrue(getUserAndDocs == Right(("sherlock@holmes.com", List("Doc 1", "Doc 2"))))
             } +
@@ -476,15 +474,14 @@ object Exceptions extends ZIOSpecDefault {
               def getUser: Either[String, User] = Right("sherlock@holmes.com")
               def getDocs: Try[Docs]            = Try(List("Doc 1", "Doc 2"))
 
-              def getUserAndDocs = {
+              def getUserAndDocs =
                 for {
                   user <- getUser.fold(
-                    error => Failure(new Exception(error)),
-                    success => Success(success)
-                  )
+                           error => Failure(new Exception(error)),
+                           success => Success(success)
+                         )
                   docs <- getDocs
                 } yield (user, docs)
-              }
 
               assertTrue(getUserAndDocs == Success(("sherlock@holmes.com", List("Doc 1", "Doc 2"))))
             } +
@@ -505,18 +502,21 @@ object Exceptions extends ZIOSpecDefault {
               def getDocs: Try[Docs]            = Try(List("Doc 1", "Doc 2"))
               def getPrefs: Option[Prefs]       = Some(Map("autosave" -> true))
 
-              def getUserAndDocsAndPrefs = {
+              def getUserAndDocsAndPrefs =
                 for {
-                  user  <- getUser.fold(
-                             error => Failure(new Exception(error)),
-                             success => Success(success)
-                           )
+                  user <- getUser.fold(
+                           error => Failure(new Exception(error)),
+                           success => Success(success)
+                         )
                   docs  <- getDocs
                   prefs <- Try(getPrefs.get)
                 } yield (user, docs, prefs)
-              }
 
-              assertTrue(getUserAndDocsAndPrefs == Success(("sherlock@holmes.com", List("Doc 1", "Doc 2"), Map("autosave" -> true))))
+              assertTrue(
+                getUserAndDocsAndPrefs == Success(
+                  ("sherlock@holmes.com", List("Doc 1", "Doc 2"), Map("autosave" -> true))
+                )
+              )
             }
         }
     }
