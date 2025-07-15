@@ -102,16 +102,13 @@ object Recursion extends ZIOSpecDefault {
            */
           test("pivot sort") {
             def sort[A](list: List[A])(implicit ordering: Ordering[A]): List[A] = {
-              def loop(list: List[A]): List[A] = {
-                list match {
-                  case Nil => Nil
-                  case head :: next => {
-                    val (less, greater) = next.partition(ordering.compare(_, head) < 0)
-                    loop(less) ++ (head :: loop(greater))
-                  }
+              list match {
+                case Nil => Nil
+                case head :: next => {
+                  val (less, greater) = next.partition(ordering.compare(_, head) < 0)
+                  sort(less) ++ (head :: sort(greater))
                 }
               }
-              loop(list)
             }
 
             assertTrue(sort(List(9, 23, 1, 5)) == List(1, 5, 9, 23))
