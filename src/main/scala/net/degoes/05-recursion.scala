@@ -13,7 +13,7 @@
 package net.degoes
 
 import zio.test._
-import zio.test.TestAspect._
+// import zio.test.TestAspect._
 
 object Recursion extends ZIOSpecDefault {
   def spec =
@@ -91,7 +91,7 @@ object Recursion extends ZIOSpecDefault {
               list match {
                 case Nil => Nil
                 case head :: next => {
-                  val (less, greater) = next.partition(ordering.compare(_, head) < 0)
+                  val (less, greater) = next.partition(ordering.lt(_, head))
                   sort(less) ++ (head :: sort(greater))
                 }
               }
@@ -254,17 +254,23 @@ object Recursion extends ZIOSpecDefault {
              * WARNING: Advanced.
              */
             test("pivot sort") {
-              def sort[A](list: List[A])(implicit ordering: Ordering[A]): List[A] =
-                list match {
-                  case Nil => Nil
-                  case head :: next => {
-                    val (less, greater) = next.partition(ordering.compare(_, head) < 0)
-                    sort(less) ++ (head :: sort(greater))
+              def sort[A](list: List[A])(implicit ordering: Ordering[A]): List[A] = {
+                def loop(todo: List[List[A]], done: List[A]): List[A] = {
+                  todo match {
+                    case Nil => done
+                    case Nil :: tailTodo => loop(tailTodo, done)
+                    case (x :: Nil) :: tailTodo => loop(tailTodo, x :: done)
+                    case (pivot :: tail) :: tailTodo => {
+                      val (less, greater) = tail.partition(ordering.lt(_, pivot))
+                      loop(less :: (pivot :: Nil) :: greater :: tailTodo, done)
+                    }
                   }
                 }
+                loop(List(list), Nil).reverse
+              }
 
               assertTrue(sort(List(9, 23, 1, 5)) == List(1, 5, 9, 23))
-            } @@ ignore
+            }
         }
     }
 }
